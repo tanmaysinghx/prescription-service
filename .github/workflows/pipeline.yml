@@ -76,6 +76,10 @@ jobs:
             --name prescription-service \
             -p 8080:8080 \
             --restart always \
+            --log-driver=awslogs \
+            --log-opt awslogs-region=ap-south-1 \
+            --log-opt awslogs-group=SankatMochan/PrescriptionService \
+            --log-opt awslogs-create-group=true \
             -e SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" \
             -e SPRING_DATASOURCE_USERNAME="${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
             -e SPRING_DATASOURCE_PASSWORD="${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \
