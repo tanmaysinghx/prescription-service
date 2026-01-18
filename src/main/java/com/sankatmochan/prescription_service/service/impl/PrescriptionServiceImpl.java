@@ -61,7 +61,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         PdfPTable headerTable = new PdfPTable(2);
         headerTable.setWidthPercentage(100);
         try {
-            headerTable.setWidths(new float[] { 1.5f, 1f });
+            headerTable.setWidths(new float[] { 1.8f, 1f });
         } catch (DocumentException e) {
             e.printStackTrace();
         }
@@ -73,7 +73,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
         String clinicName = p.getClinicName() != null ? p.getClinicName().toUpperCase()
                 : "SANKAT MOCHAN HEALTH PROGRAM";
-        Paragraph title = new Paragraph(clinicName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, THEME_TEAL));
+        Paragraph title = new Paragraph(clinicName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, THEME_TEAL)); // Size
+                                                                                                                      // 20
         leftHeader.addElement(title);
         headerTable.addCell(leftHeader);
 
@@ -87,10 +88,10 @@ public class PrescriptionServiceImpl implements PrescriptionService {
                 : "3/045 Mahatma Gandhi Marg, Hazratganj, Lucknow";
         Paragraph infoP = new Paragraph();
         infoP.setAlignment(Element.ALIGN_RIGHT);
-        infoP.add(new Chunk("info@sankatmochan.co.in\n", FontFactory.getFont(FontFactory.HELVETICA, 9, Color.GRAY)));
-        infoP.add(new Chunk(clinicAddress + "\n", FontFactory.getFont(FontFactory.HELVETICA, 9, Color.GRAY)));
+        infoP.add(new Chunk("info@sankatmochan.co.in\n", FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY)));
+        infoP.add(new Chunk(clinicAddress + "\n", FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY)));
         infoP.add(new Chunk("Prescription ID: " + p.getId(),
-                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK)));
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, Color.BLACK)));
 
         rightHeader.addElement(infoP);
 
@@ -125,7 +126,7 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
         addPatientLabel(patientInfo, "ADDRESS");
         PdfPCell addrCell = new PdfPCell(new Phrase(p.getPatientAddress() != null ? p.getPatientAddress() : "-",
-                FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                FontFactory.getFont(FontFactory.HELVETICA, 11)));
         addrCell.setBorder(Rectangle.NO_BORDER);
         addrCell.setColspan(3);
         patientInfo.addCell(addrCell);
@@ -135,38 +136,45 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         // Solid Teal Separator Line
         addTealSeparator(document);
 
-        // --- 3. Vitals Grid ---
-        PdfPTable vitals = new PdfPTable(7);
-        vitals.setWidthPercentage(100);
-        vitals.setSpacingBefore(10);
-        vitals.setSpacingAfter(15);
+        // --- 3. Vitals Grid (Split into 2 rows for spacing) ---
+        // Row 1: BP, Pulse, SPO2, Temp
+        PdfPTable vitalsRow1 = new PdfPTable(4);
+        vitalsRow1.setWidthPercentage(100);
+        vitalsRow1.setSpacingBefore(10);
+        addVitalCell(vitalsRow1, "BP", p.getBp());
+        addVitalCell(vitalsRow1, "PULSE", p.getPulse());
+        addVitalCell(vitalsRow1, "SPO2", p.getSpo2());
+        addVitalCell(vitalsRow1, "TEMP", p.getTemp());
+        document.add(vitalsRow1);
 
-        addVitalCell(vitals, "BP", p.getBp());
-        addVitalCell(vitals, "PULSE", p.getPulse());
-        addVitalCell(vitals, "SPO2", p.getSpo2());
-        addVitalCell(vitals, "TEMP", p.getTemp());
-        addVitalCell(vitals, "WEIGHT", p.getWeight());
-        addVitalCell(vitals, "HEIGHT", p.getHeight());
-        addVitalCell(vitals, "BMI", p.getBmi());
-        document.add(vitals);
+        // Row 2: Weight, Height, BMI (and empty filler)
+        PdfPTable vitalsRow2 = new PdfPTable(4);
+        vitalsRow2.setWidthPercentage(100);
+        vitalsRow2.setSpacingBefore(5);
+        vitalsRow2.setSpacingAfter(15);
+        addVitalCell(vitalsRow2, "WEIGHT", p.getWeight());
+        addVitalCell(vitalsRow2, "HEIGHT", p.getHeight());
+        addVitalCell(vitalsRow2, "BMI", p.getBmi());
+        addVitalCell(vitalsRow2, "", ""); // Spacer
+        document.add(vitalsRow2);
 
         // --- 4. Clinical Notes ---
         PdfPTable diagnosisTable = new PdfPTable(1);
         diagnosisTable.setWidthPercentage(100);
-        diagnosisTable.setSpacingAfter(10);
+        diagnosisTable.setSpacingAfter(15);
 
         PdfPCell diagCell = new PdfPCell();
         diagCell.setBorder(Rectangle.LEFT | Rectangle.BOTTOM); // Minimalist L-bracket border look
         diagCell.setBorderColor(THEME_TEAL);
-        diagCell.setBorderWidth(2f);
-        diagCell.setPadding(10);
-        diagCell.setBackgroundColor(new Color(248, 255, 255)); // Very light teal background
+        diagCell.setBorderWidth(3f); // Thicker border
+        diagCell.setPadding(12); // More padding
+        diagCell.setBackgroundColor(new Color(248, 255, 255));
 
         diagCell.addElement(
-                new Paragraph("PROBLEM / DIAGNOSIS", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, THEME_TEAL)));
-        diagCell.addElement(new Paragraph(p.getClinicalNotes(), FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                new Paragraph("PROBLEM / DIAGNOSIS", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, THEME_TEAL)));
+        diagCell.addElement(new Paragraph(p.getClinicalNotes(), FontFactory.getFont(FontFactory.HELVETICA, 11)));
         diagCell.addElement(
-                new Paragraph("\nDIAGNOSIS: " + p.getDiagnosis(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+                new Paragraph("\nDIAGNOSIS: " + p.getDiagnosis(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13)));
 
         diagnosisTable.addCell(diagCell);
         document.add(diagnosisTable);
@@ -185,9 +193,9 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         // Headers
         String[] headers = { "#", "MEDICINE NAME", "DOSAGE", "DURATION" };
         for (String h : headers) {
-            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE)));
+            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE)));
             c.setBackgroundColor(THEME_TEAL);
-            c.setPadding(6);
+            c.setPadding(8); // Increased padding
             c.setVerticalAlignment(Element.ALIGN_MIDDLE);
             c.setBorderColor(THEME_TEAL);
             meds.addCell(c);
@@ -215,11 +223,11 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
             PdfPCell adviceCell = new PdfPCell();
             adviceCell.setBorder(Rectangle.NO_BORDER);
-            adviceCell.setPadding(5);
+            adviceCell.setPadding(8);
 
             adviceCell.addElement(new Paragraph("ADVICE / INSTRUCTIONS",
-                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, THEME_TEAL)));
-            adviceCell.addElement(new Paragraph(p.getAdvice(), FontFactory.getFont(FontFactory.HELVETICA, 10)));
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, THEME_TEAL)));
+            adviceCell.addElement(new Paragraph(p.getAdvice(), FontFactory.getFont(FontFactory.HELVETICA, 11)));
 
             adviceTable.addCell(adviceCell);
             document.add(adviceTable);
@@ -257,21 +265,22 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     private void addTealSeparator(Document doc) throws DocumentException {
         LineSeparator ls = new LineSeparator();
         ls.setLineColor(THEME_TEAL);
-        ls.setLineWidth(1.5f);
+        ls.setLineWidth(2f); // Thicker line
         ls.setPercentage(100);
         ls.setOffset(-2);
         doc.add(new Chunk(ls));
     }
 
     private void addPatientLabel(PdfPTable table, String label) {
-        PdfPCell cell = new PdfPCell(new Phrase(label, FontFactory.getFont(FontFactory.HELVETICA, 7, Color.GRAY)));
+        PdfPCell cell = new PdfPCell(new Phrase(label, FontFactory.getFont(FontFactory.HELVETICA, 8, Color.GRAY)));
         cell.setBorder(Rectangle.NO_BORDER);
         cell.setPaddingBottom(5);
         table.addCell(cell);
     }
 
     private void addPatientValue(PdfPTable table, String value) {
-        PdfPCell cell = new PdfPCell(new Phrase(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+        PdfPCell cell = new PdfPCell(new Phrase(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11))); // Larger
+                                                                                                              // Value
         cell.setBorder(Rectangle.NO_BORDER);
         cell.setPaddingBottom(5);
         table.addCell(cell);
@@ -281,12 +290,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         PdfPCell cell = new PdfPCell();
         cell.setBackgroundColor(Color.WHITE);
         cell.setBorder(Rectangle.NO_BORDER);
-        cell.setPadding(5);
+        cell.setPadding(8); // More padding
 
-        Paragraph l = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 6, Color.GRAY));
+        Paragraph l = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 7, Color.GRAY));
         l.setAlignment(Element.ALIGN_CENTER);
 
-        Paragraph v = new Paragraph(value != null ? value : "-", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10));
+        Paragraph v = new Paragraph(value != null && !value.isEmpty() ? value : "-",
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11));
         v.setAlignment(Element.ALIGN_CENTER);
 
         cell.addElement(l);
@@ -295,8 +305,8 @@ public class PrescriptionServiceImpl implements PrescriptionService {
     }
 
     private PdfPCell createStripedCell(String text, Color bgColor) {
-        PdfPCell cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA, 10)));
-        cell.setPadding(6);
+        PdfPCell cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA, 11))); // Larger text
+        cell.setPadding(8); // More padding
         cell.setBackgroundColor(bgColor);
         cell.setBorderColor(new Color(230, 230, 230));
         return cell;
@@ -306,13 +316,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         PdfPCell cell = new PdfPCell();
         cell.setBorder(Rectangle.NO_BORDER);
         cell.setHorizontalAlignment(align);
-        cell.setPaddingTop(10);
+        cell.setPaddingTop(15);
 
-        Paragraph pTitle = new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, Color.GRAY));
+        Paragraph pTitle = new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.GRAY));
         pTitle.setAlignment(align);
         cell.addElement(pTitle);
 
-        Paragraph pDetails = new Paragraph(details, FontFactory.getFont(FontFactory.HELVETICA, 10));
+        Paragraph pDetails = new Paragraph(details, FontFactory.getFont(FontFactory.HELVETICA, 11));
         pDetails.setAlignment(align);
         cell.addElement(pDetails);
 
