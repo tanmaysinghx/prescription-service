@@ -33,6 +33,8 @@ class PrescriptionServiceImplTest {
         prescription = new Prescription();
         prescription.setId("SNKTMOCH12345678");
         prescription.setPatientName("John Doe");
+        prescription.setPatientAddress("123 Main St, Springfield");
+        prescription.setPatientPhone("555-1234");
         prescription.setAge(30);
         prescription.setGender("Male");
         prescription.setBp("120/80");
@@ -40,8 +42,12 @@ class PrescriptionServiceImplTest {
         prescription.setSpo2("98");
         prescription.setTemp("98.6");
         prescription.setWeight("70");
+        prescription.setHeight("175");
+        prescription.setBmi("22.9");
         prescription.setClinicalNotes("Fever and cough");
         prescription.setDiagnosis("Viral Fever");
+        prescription.setAdvice("Drink plenty of water. Rest.");
+        prescription.setNextVisitDate(LocalDateTime.now().plusDays(7));
 
         List<Map<String, String>> meds = new ArrayList<>();
         Map<String, String> med = new HashMap<>();
@@ -53,6 +59,12 @@ class PrescriptionServiceImplTest {
 
         prescription.setDoctorName("Dr. Smith");
         prescription.setDoctorRegNo("MD12345");
+        prescription.setDoctorQualification("MBBS, MD");
+        prescription.setDoctorSpecialization("General Physician");
+
+        prescription.setClinicName("Sankat Mochan Health Clinic");
+        prescription.setClinicAddress("123 Temple Road, Varanasi");
+
         prescription.setCreatedAt(LocalDateTime.now());
     }
 

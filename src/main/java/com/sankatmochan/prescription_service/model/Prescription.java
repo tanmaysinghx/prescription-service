@@ -11,7 +11,8 @@ import java.util.Map;
 
 @Entity
 @Table(name = "prescriptions")
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Prescription {
@@ -21,6 +22,8 @@ public class Prescription {
     private String id;
 
     private String patientName;
+    private String patientAddress;
+    private String patientPhone;
     private Integer age;
     private String gender;
 
@@ -29,6 +32,8 @@ public class Prescription {
     private String spo2;
     private String temp;
     private String weight;
+    private String height;
+    private String bmi;
 
     @Column(columnDefinition = "TEXT")
     private String clinicalNotes;
@@ -51,6 +56,17 @@ public class Prescription {
 
     private String doctorName;
     private String doctorRegNo;
+    private String doctorQualification;
+    private String doctorSpecialization;
+
+    private String clinicName;
+    private String clinicAddress;
+
+    @Column(name = "next_visit_date")
+    private LocalDateTime nextVisitDate;
+
+    @Column(columnDefinition = "TEXT")
+    private String advice;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -58,8 +74,14 @@ public class Prescription {
     // Safety Pre-Persist hook to ensure values are never null during save
     @PrePersist
     protected void onCreate() {
-        if (approvedByDoctor == null) { approvedByDoctor = false; }
-        if (isAiGenerated == null) { isAiGenerated = true; }
-        if (createdAt == null) { createdAt = LocalDateTime.now(); }
+        if (approvedByDoctor == null) {
+            approvedByDoctor = false;
+        }
+        if (isAiGenerated == null) {
+            isAiGenerated = true;
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }

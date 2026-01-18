@@ -4,7 +4,7 @@ import com.lowagie.text.*;
 import com.lowagie.text.Font;
 import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
-import com.lowagie.text.pdf.draw.DottedLineSeparator;
+import com.lowagie.text.pdf.draw.LineSeparator;
 import com.sankatmochan.prescription_service.model.Prescription;
 import com.sankatmochan.prescription_service.repository.PrescriptionRepository;
 import com.sankatmochan.prescription_service.service.PrescriptionService;
@@ -53,86 +53,199 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         // Setting margins for the professional spacious look
-        Document document = new Document(PageSize.A4, 30, 30, 30, 30);
+        Document document = new Document(PageSize.A4, 36, 36, 36, 36);
         PdfWriter.getInstance(document, out);
         document.open();
 
-        // 1. Header - Program Info (Aligned Right)
-        PdfPTable header = new PdfPTable(1);
-        header.setWidthPercentage(100);
-        PdfPCell infoCell = new PdfPCell();
-        infoCell.setBorder(Rectangle.NO_BORDER);
-        infoCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        infoCell.addElement(new Paragraph("SANKAT MOCHAN HEALTH PROGRAM", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, THEME_TEAL)));
-        infoCell.addElement(new Paragraph("info@sankatmochan.co.in", FontFactory.getFont(FontFactory.HELVETICA, 8)));
-        infoCell.addElement(new Paragraph("3/045 Mahatma Gandhi Marg, Hazratganj, Lucknow", FontFactory.getFont(FontFactory.HELVETICA, 8)));
-        infoCell.addElement(new Paragraph("Prescription ID: " + p.getId(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9)));
-        header.addCell(infoCell);
-        document.add(header);
+        // --- 1. Header ---
+        PdfPTable headerTable = new PdfPTable(2);
+        headerTable.setWidthPercentage(100);
+        try {
+            headerTable.setWidths(new float[] { 1.5f, 1f });
+        } catch (DocumentException e) {
+            e.printStackTrace();
+        }
 
-        // 2. Section Break: Patient Info
-        addSectionBreak(document, "Section Break(Continuous)");
+        // Left Side: Clinic Name (Large)
+        PdfPCell leftHeader = new PdfPCell();
+        leftHeader.setBorder(Rectangle.NO_BORDER);
+        leftHeader.setVerticalAlignment(Element.ALIGN_MIDDLE);
 
-        PdfPTable patientInfo = new PdfPTable(3);
+        String clinicName = p.getClinicName() != null ? p.getClinicName().toUpperCase()
+                : "SANKAT MOCHAN HEALTH PROGRAM";
+        Paragraph title = new Paragraph(clinicName, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, THEME_TEAL));
+        leftHeader.addElement(title);
+        headerTable.addCell(leftHeader);
+
+        // Right Side: Contact & Address
+        PdfPCell rightHeader = new PdfPCell();
+        rightHeader.setBorder(Rectangle.NO_BORDER);
+        rightHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        rightHeader.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        String clinicAddress = p.getClinicAddress() != null ? p.getClinicAddress()
+                : "3/045 Mahatma Gandhi Marg, Hazratganj, Lucknow";
+        Paragraph infoP = new Paragraph();
+        infoP.setAlignment(Element.ALIGN_RIGHT);
+        infoP.add(new Chunk("info@sankatmochan.co.in\n", FontFactory.getFont(FontFactory.HELVETICA, 9, Color.GRAY)));
+        infoP.add(new Chunk(clinicAddress + "\n", FontFactory.getFont(FontFactory.HELVETICA, 9, Color.GRAY)));
+        infoP.add(new Chunk("Prescription ID: " + p.getId(),
+                FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.BLACK)));
+
+        rightHeader.addElement(infoP);
+
+        headerTable.addCell(rightHeader);
+        document.add(headerTable);
+
+        // Solid Teal Separator Line
+        addTealSeparator(document);
+
+        // --- 2. Patient Info ---
+        PdfPTable patientInfo = new PdfPTable(4);
         patientInfo.setWidthPercentage(100);
-        addLabelValue(patientInfo, "PATIENT NAME", p.getPatientName(), Element.ALIGN_LEFT);
-        addLabelValue(patientInfo, "AGE", String.valueOf(p.getAge()), Element.ALIGN_CENTER);
-        addLabelValue(patientInfo, "GENDER", p.getGender(), Element.ALIGN_RIGHT);
+        patientInfo.setSpacingBefore(10);
+        patientInfo.setSpacingAfter(10);
+        try {
+            patientInfo.setWidths(new float[] { 1f, 2f, 0.8f, 2f });
+        } catch (DocumentException e) {
+            e.printStackTrace();
+        }
+
+        addPatientLabel(patientInfo, "PATIENT NAME");
+        addPatientValue(patientInfo, p.getPatientName());
+
+        addPatientLabel(patientInfo, "DATE");
+        addPatientValue(patientInfo, p.getCreatedAt().format(DateTimeFormatter.ofPattern("dd MMM yyyy")));
+
+        addPatientLabel(patientInfo, "AGE / GENDER");
+        addPatientValue(patientInfo, p.getAge() + " Y / " + p.getGender());
+
+        addPatientLabel(patientInfo, "PHONE");
+        addPatientValue(patientInfo, p.getPatientPhone() != null ? p.getPatientPhone() : "-");
+
+        addPatientLabel(patientInfo, "ADDRESS");
+        PdfPCell addrCell = new PdfPCell(new Phrase(p.getPatientAddress() != null ? p.getPatientAddress() : "-",
+                FontFactory.getFont(FontFactory.HELVETICA, 10)));
+        addrCell.setBorder(Rectangle.NO_BORDER);
+        addrCell.setColspan(3);
+        patientInfo.addCell(addrCell);
+
         document.add(patientInfo);
 
-        document.add(new Paragraph("\n"));
-        document.add(new Chunk(new DottedLineSeparator()));
+        // Solid Teal Separator Line
+        addTealSeparator(document);
 
-        // 3. Vitals Grid (Shaded Grey Table)
-        PdfPTable vitals = new PdfPTable(5);
+        // --- 3. Vitals Grid ---
+        PdfPTable vitals = new PdfPTable(7);
         vitals.setWidthPercentage(100);
         vitals.setSpacingBefore(10);
-        addVitalCell(vitals, "BP (MMHG)", p.getBp());
-        addVitalCell(vitals, "PULSE (BPM)", p.getPulse());
-        addVitalCell(vitals, "SPO2 (%)", p.getSpo2());
-        addVitalCell(vitals, "TEMP (°F)", p.getTemp());
-        addVitalCell(vitals, "WEIGHT (KG)", p.getWeight());
+        vitals.setSpacingAfter(15);
+
+        addVitalCell(vitals, "BP", p.getBp());
+        addVitalCell(vitals, "PULSE", p.getPulse());
+        addVitalCell(vitals, "SPO2", p.getSpo2());
+        addVitalCell(vitals, "TEMP", p.getTemp());
+        addVitalCell(vitals, "WEIGHT", p.getWeight());
+        addVitalCell(vitals, "HEIGHT", p.getHeight());
+        addVitalCell(vitals, "BMI", p.getBmi());
         document.add(vitals);
 
-        // 4. Problem Statement & Diagnosis
-        document.add(new Paragraph("\nPROBLEM STATEMENT / CLINICAL NOTES", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, THEME_TEAL)));
-        document.add(new Paragraph(p.getClinicalNotes(), FontFactory.getFont(FontFactory.HELVETICA, 10)));
-        document.add(new Paragraph("\nDiagnosis: " + p.getDiagnosis(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13)));
+        // --- 4. Clinical Notes ---
+        PdfPTable diagnosisTable = new PdfPTable(1);
+        diagnosisTable.setWidthPercentage(100);
+        diagnosisTable.setSpacingAfter(10);
 
-        // 5. Medication Table
+        PdfPCell diagCell = new PdfPCell();
+        diagCell.setBorder(Rectangle.LEFT | Rectangle.BOTTOM); // Minimalist L-bracket border look
+        diagCell.setBorderColor(THEME_TEAL);
+        diagCell.setBorderWidth(2f);
+        diagCell.setPadding(10);
+        diagCell.setBackgroundColor(new Color(248, 255, 255)); // Very light teal background
+
+        diagCell.addElement(
+                new Paragraph("PROBLEM / DIAGNOSIS", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, THEME_TEAL)));
+        diagCell.addElement(new Paragraph(p.getClinicalNotes(), FontFactory.getFont(FontFactory.HELVETICA, 10)));
+        diagCell.addElement(
+                new Paragraph("\nDIAGNOSIS: " + p.getDiagnosis(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
+
+        diagnosisTable.addCell(diagCell);
+        document.add(diagnosisTable);
+
+        // --- 5. Medication Table ---
         PdfPTable meds = new PdfPTable(4);
         meds.setWidthPercentage(100);
-        meds.setSpacingBefore(15);
-        meds.setWidths(new float[]{0.5f, 4, 1.5f, 1.5f});
+        meds.setSpacingBefore(10);
+        try {
+            meds.setWidths(new float[] { 0.6f, 4, 1.5f, 1.5f });
+        } catch (DocumentException e) {
+            e.printStackTrace();
+        }
+        meds.setHeaderRows(1);
 
-        // Table Headers with Teal Accent and Light Gray Fill
-        String[] headers = {"#", "MEDICINE NAME", "DOSAGE", "DURATION"};
+        // Headers
+        String[] headers = { "#", "MEDICINE NAME", "DOSAGE", "DURATION" };
         for (String h : headers) {
-            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8)));
-            c.setBackgroundColor(LIGHT_GRAY);
-            c.setPadding(5);
+            PdfPCell c = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE)));
+            c.setBackgroundColor(THEME_TEAL);
+            c.setPadding(6);
+            c.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            c.setBorderColor(THEME_TEAL);
             meds.addCell(c);
         }
 
+        // Rows with Zebra Striping
         int count = 1;
-        for (Map<String, String> med : p.getMedicationData()) {
-            meds.addCell(createBorderedCell(String.valueOf(count++)));
-            meds.addCell(createBorderedCell(med.get("name")));
-            meds.addCell(createBorderedCell(med.get("dosage")));
-            meds.addCell(createBorderedCell(med.get("duration")));
+        if (p.getMedicationData() != null) {
+            for (Map<String, String> med : p.getMedicationData()) {
+                Color rowColor = (count % 2 == 0) ? LIGHT_GRAY : Color.WHITE;
+
+                meds.addCell(createStripedCell(String.valueOf(count++), rowColor));
+                meds.addCell(createStripedCell(med.get("name"), rowColor));
+                meds.addCell(createStripedCell(med.get("dosage"), rowColor));
+                meds.addCell(createStripedCell(med.get("duration"), rowColor));
+            }
         }
         document.add(meds);
 
-        // 6. Footer: Signatures and Date
-        document.add(new Paragraph("\n"));
-        addSectionBreak(document, "Section Break(Continuous)");
+        // --- 6. Advice ---
+        if (p.getAdvice() != null && !p.getAdvice().isEmpty()) {
+            document.add(new Paragraph("\n"));
+            PdfPTable adviceTable = new PdfPTable(1);
+            adviceTable.setWidthPercentage(100);
+
+            PdfPCell adviceCell = new PdfPCell();
+            adviceCell.setBorder(Rectangle.NO_BORDER);
+            adviceCell.setPadding(5);
+
+            adviceCell.addElement(new Paragraph("ADVICE / INSTRUCTIONS",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, THEME_TEAL)));
+            adviceCell.addElement(new Paragraph(p.getAdvice(), FontFactory.getFont(FontFactory.HELVETICA, 10)));
+
+            adviceTable.addCell(adviceCell);
+            document.add(adviceTable);
+        }
+
+        // --- 7. Footer ---
+        document.add(new Paragraph("\n\n")); // Spacing
+        addTealSeparator(document);
 
         PdfPTable footer = new PdfPTable(2);
         footer.setWidthPercentage(100);
-        String date = p.getCreatedAt().format(DateTimeFormatter.ofPattern("MM/dd/yy"));
 
-        addSignatureArea(footer, "Consulting Doctor:", "Name: " + p.getDoctorName() + "\nReg No: " + p.getDoctorRegNo(), date);
-        addSignatureArea(footer, "Sankat Mochan Nagrik (SMN):", "Name: \nTylor ID: 5", date);
+        String doctorDetails = p.getDoctorName().toUpperCase() + "\n" + p.getDoctorRegNo();
+        if (p.getDoctorQualification() != null)
+            doctorDetails += "\n" + p.getDoctorQualification();
+        if (p.getDoctorSpecialization() != null)
+            doctorDetails += "\n" + p.getDoctorSpecialization();
+
+        addFooterSignature(footer, "CONSULTING DOCTOR", doctorDetails, Element.ALIGN_LEFT);
+
+        String nextVisit = p.getNextVisitDate() != null
+                ? "Next Visit: " + p.getNextVisitDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy"))
+                : "";
+        addFooterSignature(footer, "SANKAT MOCHAN NAGRIK", "Generated by SMN Platform\n" + nextVisit,
+                Element.ALIGN_RIGHT);
+
         document.add(footer);
 
         document.close();
@@ -141,52 +254,68 @@ public class PrescriptionServiceImpl implements PrescriptionService {
 
     // --- Layout and Styling Helper Methods ---
 
-    private void addSectionBreak(Document doc, String text) throws DocumentException {
-        Paragraph p = new Paragraph();
-        p.add(new Chunk(new DottedLineSeparator()));
-        p.add(new Chunk(" " + text + " ", FontFactory.getFont(FontFactory.HELVETICA, 8, Color.GRAY)));
-        p.add(new Chunk(new DottedLineSeparator()));
-        doc.add(p);
+    private void addTealSeparator(Document doc) throws DocumentException {
+        LineSeparator ls = new LineSeparator();
+        ls.setLineColor(THEME_TEAL);
+        ls.setLineWidth(1.5f);
+        ls.setPercentage(100);
+        ls.setOffset(-2);
+        doc.add(new Chunk(ls));
     }
 
-    private void addLabelValue(PdfPTable table, String label, String value, int align) {
-        PdfPCell cell = new PdfPCell();
+    private void addPatientLabel(PdfPTable table, String label) {
+        PdfPCell cell = new PdfPCell(new Phrase(label, FontFactory.getFont(FontFactory.HELVETICA, 7, Color.GRAY)));
         cell.setBorder(Rectangle.NO_BORDER);
-        cell.setHorizontalAlignment(align);
-        cell.addElement(new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 7, Color.GRAY)));
-        cell.addElement(new Paragraph(value, FontFactory.getFont(FontFactory.HELVETICA, 11)));
+        cell.setPaddingBottom(5);
+        table.addCell(cell);
+    }
+
+    private void addPatientValue(PdfPTable table, String value) {
+        PdfPCell cell = new PdfPCell(new Phrase(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+        cell.setBorder(Rectangle.NO_BORDER);
+        cell.setPaddingBottom(5);
         table.addCell(cell);
     }
 
     private void addVitalCell(PdfPTable table, String label, String value) {
         PdfPCell cell = new PdfPCell();
-        cell.setBackgroundColor(LIGHT_GRAY);
-        cell.setBorderColor(Color.LIGHT_GRAY);
+        cell.setBackgroundColor(Color.WHITE);
+        cell.setBorder(Rectangle.NO_BORDER);
         cell.setPadding(5);
+
         Paragraph l = new Paragraph(label, FontFactory.getFont(FontFactory.HELVETICA, 6, Color.GRAY));
         l.setAlignment(Element.ALIGN_CENTER);
-        Paragraph v = new Paragraph(value, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10));
+
+        Paragraph v = new Paragraph(value != null ? value : "-", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10));
         v.setAlignment(Element.ALIGN_CENTER);
+
         cell.addElement(l);
         cell.addElement(v);
         table.addCell(cell);
     }
 
-    private PdfPCell createBorderedCell(String text) {
+    private PdfPCell createStripedCell(String text, Color bgColor) {
         PdfPCell cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA, 10)));
-        cell.setPadding(5);
-        cell.setBorderColor(Color.LIGHT_GRAY);
+        cell.setPadding(6);
+        cell.setBackgroundColor(bgColor);
+        cell.setBorderColor(new Color(230, 230, 230));
         return cell;
     }
 
-    private void addSignatureArea(PdfPTable table, String title, String details, String date) {
+    private void addFooterSignature(PdfPTable table, String title, String details, int align) {
         PdfPCell cell = new PdfPCell();
         cell.setBorder(Rectangle.NO_BORDER);
-        cell.setPaddingTop(15);
-        cell.addElement(new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA, 9)));
-        cell.addElement(new Paragraph(details, FontFactory.getFont(FontFactory.HELVETICA, 8)));
-        cell.addElement(new Paragraph("\n__________________________", FontFactory.getFont(FontFactory.HELVETICA, 8)));
-        cell.addElement(new Paragraph("SIGNATURE                                  " + date, FontFactory.getFont(FontFactory.HELVETICA, 6, Color.GRAY)));
+        cell.setHorizontalAlignment(align);
+        cell.setPaddingTop(10);
+
+        Paragraph pTitle = new Paragraph(title, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8, Color.GRAY));
+        pTitle.setAlignment(align);
+        cell.addElement(pTitle);
+
+        Paragraph pDetails = new Paragraph(details, FontFactory.getFont(FontFactory.HELVETICA, 10));
+        pDetails.setAlignment(align);
+        cell.addElement(pDetails);
+
         table.addCell(cell);
     }
 
